@@ -3,6 +3,9 @@ Collection of ansible snippets for oVirt/RHV
 
 
 ## Create hosted-engine deployment hook for [Red Hat Solution 4088711](https://access.redhat.com/solutions/4088711)
+How does this playbook works? 
+It will connect to RHV Manager API and collect information from `HostedEngine` VM like Data-Center, Cluster and required networks from Cluster, where SHE is running on. 
+All required networks in the selected Cluster will be added to a `required_networks` list and used to create the `fix_network.yml` hook. 
 
 ### configure `config/rhv-m.yml` to setup credentials for RHV-Manager environment
 The following configuration example is the minimum required to run this script.
