@@ -1,0 +1,78 @@
+---
+- hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - config/rhv-m.yml
+
+  collections:
+    - ovirt.ovirt
+
+  pre_tasks:
+    - name: Login to oVirt
+      ovirt_auth:
+        url: "{{ engine_url }}"
+        username: "{{ engine_user }}"
+        password: "{{ engine_password }}"
+        ca_file: "{{ engine_cafile | default(omit) }}"
+        insecure: "{{ engine_insecure | default(true) }}"
+      tags:
+        - always
+
+  tasks:
+    - name: Gather SHE VM information
+      ovirt_vm_info:
+        auth: "{{ ovirt_auth }}"
+        pattern: name=HostedEngine
+        fetch_nested: true
+        nested_attributes:
+          - name
+      register: result
+
+    - name: Setting SHE cluster name fact
+      set_fact:
+        he_cluster_name: "{{ result.ovirt_vms.0.cluster.name }}"
+
+    - name: Gather SHE cluster information
+      ovirt_cluster_info:
+        auth: "{{ ovirt_auth }}"
+        pattern: "name={{ he_cluster_name }}"
+        fetch_nested:  true
+        nested_attributes:
+          - required
+          - name
+      register: result
+
+    - name: Setting SHE cluster datacenter name fact
+      set_fact:
+        he_datacenter_name: "{{  result.ovirt_clusters.0.data_center.name  }}"
+
+    - name: Initialize empty networks list
+      set_fact:
+        required_networks: []
+
+    - name: Find all required network of cluster "{{ he_cluster_name }}" where SHE is running 
+      set_fact:
+        required_networks: "{{ required_networks + [ item.name ] }}"
+      with_items: 
+        - "{{ result.ovirt_clusters.0.networks }}"
+      when: item.required is defined and item.required == true
+
+    - name: debug output
+      ansible.builtin.debug:
+        msg: "{{ required_networks }}"
+
+    # https://access.redhat.com/solutions/4088711
+    - name: create fix_network.yml hook
+      template:
+        src: "fix_network.yml.j2"
+        dest: "fix_network.yml"
+        mode: 0644
+
+  post_tasks:
+    - name: Logout from oVirt
+      ovirt_auth:
+        state: absent
+        ovirt_auth: "{{ ovirt_auth }}"
+      tags:
+        - always

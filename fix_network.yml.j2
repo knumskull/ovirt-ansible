@@ -1,0 +1,15 @@
+- include_tasks: auth_sso.yml
+- name: Wait for the engine to reach a stable condition
+  wait_for: timeout=300
+- name: fix network
+  ovirt_network:
+     auth: {{ '"{{' }} ovirt_auth {{ '}}"' }}
+     name: {{ '"{{' }} item {{ '}}"' }}
+     data_center: {{ he_datacenter_name }}
+     clusters:
+        - name: {{ he_cluster_name }}
+          required: False
+  with_items:
+  {% for item in required_networks %}
+     - {{ item }}
+  {% endfor %}
