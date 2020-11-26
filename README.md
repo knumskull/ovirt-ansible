@@ -23,6 +23,7 @@ Once available, a simple clone of git repository and execution of the playbook `
 $ git clone https://github.com/knumskull/ovirt-ansible.git
 $ cd ovirt-ansible
 $ ansible-playbook create-fix_network-hook.yml
+```
 
 
 ### Example Output of fix_network.yml
