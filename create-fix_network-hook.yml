@@ -56,7 +56,7 @@
         required_networks: "{{ required_networks + [ item.name ] }}"
       with_items: 
         - "{{ result.ovirt_clusters.0.networks }}"
-      when: item.required is defined and item.required == true
+      when: item.required is defined and item.required == true and item.name != 'ovirtmgmt' and item.name != 'rhevm'
 
     - name: debug output
       ansible.builtin.debug:
