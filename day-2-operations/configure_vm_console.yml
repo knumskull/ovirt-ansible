@@ -1,0 +1,55 @@
+---
+- name: Configure VM console for all virtual machines
+  hosts: rhv-m.crazy.lab
+  gather_facts: false
+
+  vars:
+    engine_url: "https://rhv-m.crazy.lab/ovirt-engine/api"
+    engine_cafile: /etc/pki/ovirt-engine/ca.pem
+    data_center_name: Default
+
+  vars_files:
+    config/rhv-credentials.yml
+
+  collections:
+    - redhat.rhv
+
+  pre_tasks:
+    - name: Login to oVirt
+      ovirt_auth:
+        url: "{{ engine_url }}"
+        username: "{{ engine_user }}"
+        password: "{{ engine_password }}"
+        ca_file: "{{ engine_cafile | default(omit) }}"
+        insecure: "{{ engine_insecure | default(true) }}"
+      no_log: true
+      tags: always
+
+  tasks:
+    - name: query information
+      # query rhv-m for existing virtual machines. Change pattern to reduce result.
+      ovirt_vm_info:
+        auth: "{{ ovirt_auth }}"
+        pattern: "*"
+      register: search_result
+
+    - name: set console to VNC
+      # worth to set default VNC option in engine to NoVnc
+      # engine-config -s ClientModeVncDefault=NoVnc
+      ovirt_vm:
+        auth: "{{ ovirt_auth }}"
+        name: "{{ item.name }}"
+        graphical_console: 
+          keyboard_layout: en
+          # if spice + vnc, change value to [spice, vnc]
+          protocol: [vnc]
+      loop: "{{ search_result.ovirt_vms }}"
+
+  post_tasks:
+  - name: Logout from ovirt
+    ovirt_auth:
+      state: absent
+      ovirt_auth: "{{ ovirt_auth }}"
+    no_log: true
+    tags: always
+...
